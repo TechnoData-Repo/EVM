@@ -1,6 +1,6 @@
 # EVM
 Erick's Virtual Machine
-Version: alpha (Still in development)
+* Version: alpha
 
 # About
 This is an emulator created for educational purposes, where people can create their own programs and share, while learning about low-level programming.
