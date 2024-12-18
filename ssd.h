@@ -1,7 +1,3 @@
-#include <iostream>
-#include <vector>
-#include <fstream>
-
 class SSD {
 private:
 	unsigned int addressBus = 0; // Address Bus
