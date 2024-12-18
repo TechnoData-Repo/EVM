@@ -8,11 +8,17 @@ This is an emulator created for educational purposes, where people can create th
 Originally created as a college project, now this project availiable for anyone interested.
 
 # Details
+Emulator Specs:
 * CPU: MOS Technology 65C02 (4MHz)
 * GPU: SAS VCU (Simple and Square Video Control Unit)
 * Storage Capacity: 4MB
 * Memory Capacity: 64kb
 * Keyboard Protocol: USB
+
+Memory Map:
+- 32kb of RAM
+- 16kb of Video RAM (VRS, Video Reserved Space)
+- 16kb of ROM
 
 Currently Supported Layouts:
 * US Standard
