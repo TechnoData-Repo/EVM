@@ -5,7 +5,7 @@ Erick's Virtual Machine
 # About
 This is an emulator created for educational purposes, where people can create their own programs and share, while learning about low-level programming.
 
-Originally created as a college project, now this project availiable for anyone interested.
+Originally created as a college project, now this project is availiable for anyone interested.
 
 # Details
 Emulator Specs:
