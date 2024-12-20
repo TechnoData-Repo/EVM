@@ -29,7 +29,7 @@ Color Modes:
 * 256 colors (128x128px resolution)
 
 # External Dependencies
-* SDL2
+* SDL2 (https://github.com/libsdl-org/SDL)
 
 # Wanna help?
 This is a work in progress. If you have any suggestions, or want to see any new features, please, feel free :)
