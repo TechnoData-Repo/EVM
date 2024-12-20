@@ -1,8 +1,8 @@
 /*
-* AUTHOR: ERICK AFFONSO -- 2024
-* 
+* AUTHOR: ERICK AFFONSO (2024)
+*
 * FREE AND OPEN-SOURCE SOFTWARE
-* 
+*
 * SOFTWARE LICENSE: GNU GPLv3
 */
 
@@ -11,19 +11,19 @@
 #include <thread>
 #include <fstream>
 #include <vector>
-#include <SDL2\SDL.h>
+#include <definitions.h>
+#include <SDL.h>
 #include <via6522.h>
 #include <keyboard.h>
 #include <ssd.h>
 #include <mos65c02.h>
 #include <sas.h>
 
-// Keyboard Layouts
-const unsigned char KBD_LAYOUT = US;
+// Keyboard Layout to be used
+const uchar KBD_LAYOUT = US;
 
-// Memory
-unsigned char Memory[0x10000];
-/* Layout: 
+extern byte Memory[0x10000];
+/* Layout:
 	* $0000-$3FCF (RAM 1)
 	* $3FE0-$3FEF (VIA 3)
 	* $3FE0-$3FEF (VIA 2)
@@ -69,18 +69,18 @@ const char* Version = "alpha";
 
 // Draws the Pixels on the Window, and adjusts the pixel size according to window size
 void Draw(SDL_Renderer* renderer, int scale) {
-    SDL_Rect rect;
-    rect.x = vcu.HR * scale;
-    rect.y = vcu.VR * scale;
-    rect.h = scale;
-    rect.w = scale;
+	SDL_Rect rect;
+	rect.x = vcu.HR * scale;
+	rect.y = vcu.VR * scale;
+	rect.h = scale;
+	rect.w = scale;
 	SDL_SetRenderDrawColor(renderer, vcu.RGB[0], vcu.RGB[1], vcu.RGB[2], SDL_ALPHA_OPAQUE);
-    SDL_RenderFillRect(renderer, &rect);
+	SDL_RenderFillRect(renderer, &rect);
 }
 
 // Video Control Unit
 void VCU() {
-    // Initializing Stuff
+	// Initializing Stuff
 	vcu.reset();
 	int scale = 0; // <-- Pixel scale
 	if (vcu.CMR == 1) {
@@ -90,72 +90,72 @@ void VCU() {
 		scale = SCREEN_WIDTH / 128;
 	}
 
-    // Initializing SDL
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
-    {
-        std::cerr << "ERROR: SDL could not be initialized! SDL_Error: " << SDL_GetError() << std::endl;
-        exit(-1);
-    }
+	// Initializing SDL
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	{
+		std::cerr << "ERROR: SDL could not be initialized! SDL_Error: " << SDL_GetError() << std::endl;
+		exit(-1);
+	}
 
-    // Window
-    SDL_Window* window = SDL_CreateWindow(EmulatorSDLWindowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    if (window == nullptr)
-    {
-        std::cerr << "ERROR: Window could not be created! SDL_Error: " << SDL_GetError() << std::endl;
-        SDL_Quit();
-        exit(-1);
-    }
+	// Window
+	SDL_Window* window = SDL_CreateWindow(EmulatorSDLWindowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+	if (window == nullptr)
+	{
+		std::cerr << "ERROR: Window could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+		SDL_Quit();
+		exit(-1);
+	}
 
-    // Renderer
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-    if (renderer == nullptr)
-    {
-        std::cerr << "ERROR: Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        exit(-1);
-    }
+	// Renderer
+	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+	if (renderer == nullptr)
+	{
+		std::cerr << "ERROR: Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+		SDL_DestroyWindow(window);
+		SDL_Quit();
+		exit(-1);
+	}
 
-    // Main loop flag
-    bool quit = false;
-    SDL_Event e;
+	// Main loop flag
+	bool quit = false;
+	SDL_Event e;
 
-    // Initializing Screen
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(renderer);
+	// Initializing Screen
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+	SDL_RenderClear(renderer);
 
-    printf(" --- VCU Running\n");
+	printf(" --- VCU Running\n");
 
 	const int REPORT_BUFFER_SIZE = 8; // Size of the Keyboard Repport Buffer
-	unsigned char KeyboardReport[REPORT_BUFFER_SIZE][8]; // Keyboard Reports list
+	byte KeyboardReport[REPORT_BUFFER_SIZE][8]; // Keyboard Reports list
 	bool ReportPacketStatus[REPORT_BUFFER_SIZE] = { true,true,true,true,true,true,true,true }; // Status of each Report Packet | false: not sent; true: sent;
-	unsigned char KeysPressed = 2; // Number of Keys currently pressed (excluding modifier keys)
-	unsigned char ReportPacket = 0; // Index of the Next Keyboard Report to be sent
-	unsigned char ReportsStorageIndex = 0; // Index of the next Keyboard Report to be stored
-	unsigned char ByteCounter = 0; // Bytes of the Keyboard Report that were already sent
-	
+	uchar KeysPressed = 2; // Number of Keys currently pressed (excluding modifier keys)
+	uchar ReportPacket = 0; // Index of the Next Keyboard Report to be sent
+	uchar ReportsStorageIndex = 0; // Index of the next Keyboard Report to be stored
+	uchar ByteCounter = 0; // Bytes of the Keyboard Report that were already sent
+
 	// Initializing KeyboardReport
-	for (unsigned char i = 0; i < REPORT_BUFFER_SIZE; i++) {
-		for (unsigned char j = 0; j < 8; j++) {
+	for (uchar i = 0; i < REPORT_BUFFER_SIZE; i++) {
+		for (uchar j = 0; j < 8; j++) {
 			KeyboardReport[i][j] = 0;
 		}
 	}
 
 	auto start = std::chrono::high_resolution_clock::now(); // <- Used to get number of frames
-    // SDL Main loop
-    while (!quit)
-    {
-        // Handle events on the queue
-        while (SDL_PollEvent(&e) != 0)
-        {
-			unsigned char Key = 0;
-            // User requests quit
-            if (e.type == SDL_QUIT)
-            {
-                quit = true;
-            }
+	// SDL Main loop
+	while (!quit)
+	{
+		// Handle events on the queue
+		while (SDL_PollEvent(&e) != 0)
+		{
+			uchar Key = 0;
+			// User requests quit
+			if (e.type == SDL_QUIT)
+			{
+				quit = true;
+			}
 			else if (e.type == SDL_KEYDOWN) {
-				Key = KeyTranslate(e.key.keysym.sym, KBD_LAYOUT);
+				Key = TranslateKey(e.key.keysym.sym, KBD_LAYOUT);
 				if (verbose) {
 					printf("Pressed. ASCII Key Code: %02x\n", e.key.keysym.sym);
 				}
@@ -178,7 +178,7 @@ void VCU() {
 						KeyboardReport[ReportsStorageIndex][6] = KeyboardReport[REPORT_BUFFER_SIZE - 1][6];
 						KeyboardReport[ReportsStorageIndex][7] = KeyboardReport[REPORT_BUFFER_SIZE - 1][7];
 					}
-					
+
 					switch (e.key.keysym.sym) {
 						case 0x400000E0: // Left CTRL
 							KeyboardReport[ReportsStorageIndex][0] = KeyboardReport[ReportsStorageIndex][0] | 0b00000001;
@@ -200,7 +200,7 @@ void VCU() {
 							break;
 					}
 					bool AlreadyReported = false;
-					for (unsigned char i = 2; i < 8; i++) {
+					for (uchar i = 2; i < 8; i++) {
 						if (KeyboardReport[ReportsStorageIndex][i] == Key) {
 							AlreadyReported = true;
 							break;
@@ -231,7 +231,7 @@ void VCU() {
 				}
 			}
 			else if (e.type == SDL_KEYUP) {
-				Key = KeyTranslate(e.key.keysym.sym, KBD_LAYOUT);
+				Key = TranslateKey(e.key.keysym.sym, KBD_LAYOUT);
 				if (verbose) {
 					printf("Released. ASCII Key Code: %02x\n", e.key.keysym.sym);
 				}
@@ -275,7 +275,7 @@ void VCU() {
 							KeyboardReport[ReportsStorageIndex][0] = KeyboardReport[ReportsStorageIndex][0] & 0b10111111;
 							break;
 					}
-					for (unsigned char i = 2; i < 8; i++) {
+					for (uchar i = 2; i < 8; i++) {
 						if (KeyboardReport[ReportsStorageIndex][i] == Key) {
 							while (i != 7) {
 								KeyboardReport[ReportsStorageIndex][i] = KeyboardReport[ReportsStorageIndex][i + 1];
@@ -297,7 +297,7 @@ void VCU() {
 					}
 				}
 			}
-        }
+		}
 
 		// Send Keyboard Report to the CPU (8-bits at a time)
 		if (IRQ == true && ReportPacketStatus[ReportPacket] == false) {
@@ -324,11 +324,11 @@ void VCU() {
 				ByteCounter++;
 			}
 		}
-        
+
 		// VCU Subroutines
 		vcu.FetchPixelData();
 		vcu.TranslatePixel();
-        Draw(renderer, scale);
+		Draw(renderer, scale);
 		vcu.IncVideoRegs();
 
 		// Reset VCU
@@ -344,8 +344,8 @@ void VCU() {
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 			SDL_RenderClear(renderer);
 		}
-        
-        if (vcu.HR == 0) {
+
+		if (vcu.HR == 0) {
 			if (vcu.VR == 0) {
 				SDL_RenderPresent(renderer);
 
@@ -359,13 +359,13 @@ void VCU() {
 					}
 				}
 			}
-        }
-    }
+		}
+	}
 
-    // Kill SDL instance
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+	// Kill SDL instance
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
 	SDLStatus = false;
 }
 
@@ -383,7 +383,7 @@ void CPU() {
 	int totalCycles = 0;
 	unsigned insAddr = 0;
 
-	unsigned short secs = 0;
+	ushort secs = 0;
 	auto start = std::chrono::high_resolution_clock::now();
 
 	printf(" --- CPU Running\n");
@@ -416,7 +416,7 @@ void CPU() {
 				cpu.FetchInstruction();
 				cpu.Execute();
 				if (verbose) {
-					printf("PC: %04x    Ins: %02x    X: %02x    Y: %02x    AC: %02x    SR: %02x    SP: %02x    SP Val.: %02x    Ref. Addr.: %04x    Val. in Addr.: %02x\n", insAddr, cpu.Ins, cpu.X, cpu.Y, cpu.AC, cpu.SR, cpu.SP, Memory[0x100 | cpu.SP], cpu.Address, Memory[cpu.Address]);
+					printf("PC: %04x    Ins: %02x    X: %02x    Y: %02x    AC: %02x    SR: %02x    SP: %02x    SP Val.: %02x    Ref. Addr.: %04x    Val. in Addr.: %02x\n", insAddr, cpu.IR, cpu.X, cpu.Y, cpu.AC, cpu.SR, cpu.SP, Memory[0x100 | cpu.SP], cpu.Address, Memory[cpu.Address]);
 				}
 				switch (cpu.CheckInterrupts()) {
 					case 1:
@@ -515,7 +515,7 @@ int main(int argc, char* argv[]) {
 	rom.close();
 
 	// Initializing Memory and Copying ROM
-	unsigned short x = 0;
+	ushort x = 0;
 	for (unsigned int i = 0; i < 0x10000; i++) {
 		if (i > (0xFFFF - ROM_SIZE)) {
 			Memory[i] = ROM[x];
@@ -540,9 +540,9 @@ int main(int argc, char* argv[]) {
 	std::thread VCU_thread(VCU);
 	printf("Erick's Virtual Machine\n\n");
 	printf("Version: %s\n", Version);
-	
+
 	VCU_thread.join();
 	printf(" --- Stopping Emulation...\n");
 	CPU_thread.join();
-    return 0;
+	return 0;
 }
